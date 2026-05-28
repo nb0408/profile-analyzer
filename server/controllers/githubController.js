@@ -108,10 +108,73 @@ const getUserRepos = async(req,res)=>{
             message:"failure from server to fetch data"
         })
     }
-}
+};
+const compareUsers = async (req, res) => {
+
+    try {
+
+        const { user1, user2 } = req.params;
+
+        const [response1, response2] = await Promise.all([
+
+            axios.get(
+                `https://api.github.com/users/${user1}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${process.env.GITHUB_TOKEN}`
+                    }
+                }
+            ),
+
+            axios.get(
+                `https://api.github.com/users/${user2}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${process.env.GITHUB_TOKEN}`
+                    }
+                }
+            )
+
+        ]);
+
+        const profile1 = response1.data;
+        const profile2 = response2.data;
+
+        res.status(200).json({
+            success: true,
+
+            comparison: {
+
+                user1: {
+                    username: profile1.login,
+                    followers: profile1.followers,
+                    publicRepos: profile1.public_repos
+                },
+
+                user2: {
+                    username: profile2.login,
+                    followers: profile2.followers,
+                    publicRepos: profile2.public_repos
+                }
+
+            }
+
+        });
+
+    } catch (error) {
+
+        res.status(500).json({
+            success: false,
+            message: "Comparison failed"
+        });
+
+    }
+
+};
 
 
 module.exports = {
     getUserProfile,
-    getUserRepos
+    getUserRepos,
+    compareUsers
 };
