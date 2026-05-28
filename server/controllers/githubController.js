@@ -139,22 +139,60 @@ const compareUsers = async (req, res) => {
 
         const profile1 = response1.data;
         const profile2 = response2.data;
+        let winner = "";
+        let greaterScore="";
+
+        if (profile1.followers > profile2.followers) {
+
+            winner = profile1.login;
+
+        } else if (profile2.followers > profile1.followers) {
+
+            winner = profile2.login;
+
+        } else {
+
+            winner = "Tie";
+
+        }
+        let score1=profile1.followers+profile1.public_repos;
+        let score2=profile2.followers+profile2.public_repos;
+        if(score1>score2) greaterScore=profile1.login;
+        else if(score1<score2) greaterScore=profile2.login;
+        else greaterScore="tie";
+
+        // FOLLOWER DIFFERENCE
+
+        const followersDifference = Math.abs(
+            profile1.followers - profile2.followers
+        );
+
 
         res.status(200).json({
             success: true,
 
             comparison: {
+                
+                winner,
+                greaterScore,
+
+                followersDifference,
 
                 user1: {
                     username: profile1.login,
                     followers: profile1.followers,
-                    publicRepos: profile1.public_repos
+                    following:profile1.following,
+                    publicRepos: profile1.public_repos,
+                    avatar:profile1.avatar
+
                 },
 
                 user2: {
                     username: profile2.login,
                     followers: profile2.followers,
-                    publicRepos: profile2.public_repos
+                    following:profile2.following,
+                    publicRepos: profile2.public_repos,
+                    avatar:profile2.avatar
                 }
 
             }
@@ -162,6 +200,14 @@ const compareUsers = async (req, res) => {
         });
 
     } catch (error) {
+        if (error.response && error.response.status === 404) {
+
+            return res.status(404).json({
+                success: false,
+                message: "One or both users not found"
+            });
+
+        }
 
         res.status(500).json({
             success: false,
