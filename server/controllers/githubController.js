@@ -1,17 +1,37 @@
 const axios = require("axios");
 
+const cache = require("../cache/cacheStore");
 const getUserProfile = async (req, res) => {
 
     try {
 
         const username = req.params.username;
 
-        if(username.length<5){
-            res.status(400).json({
-                success:false,
-                message:"username too short"
+        if (username.length < 3) {
+            return res.status(400).json({
+                success: false,
+                message: "Username too short"
             });
         }
+
+        // CHECK CACHE FIRST
+
+        const cachedUser = cache[username];
+
+        if (
+            cachedUser &&
+            Date.now() - cachedUser.timestamp < 5 * 60 * 1000
+        ) {
+
+            return res.status(200).json({
+                success: true,
+                source: "cache",
+                profile: cachedUser.data
+            });
+
+        }
+
+        // FETCH FROM GITHUB
 
         const response = await axios.get(
             `https://api.github.com/users/${username}`,
@@ -24,22 +44,31 @@ const getUserProfile = async (req, res) => {
 
         const userData = response.data;
 
+        const profile = {
+            username: userData.login,
+            name: userData.name,
+            bio: userData.bio,
+            followers: userData.followers,
+            following: userData.following,
+            publicRepos: userData.public_repos,
+            avatar: userData.avatar_url,
+            location: userData.location,
+            company: userData.company,
+            blog: userData.blog,
+            created_at: userData.created_at
+        };
+
+        // SAVE TO CACHE
+
+        cache[username] = {
+            data: profile,
+            timestamp: Date.now()
+        };
+
         res.status(200).json({
             success: true,
-            profile: {
-                username: userData.login,
-                name: userData.name,
-                bio: userData.bio,
-                followers: userData.followers,
-                following: userData.following,
-                publicRepos: userData.public_repos,
-                avatar: userData.avatar_url,
-                location:userData.location,
-                company:userData.company,
-                blog:userData.blog,
-                created_at:userData.created_at
-
-            }
+            source: "github",
+            profile
         });
 
     } catch (error) {
@@ -48,7 +77,7 @@ const getUserProfile = async (req, res) => {
 
             return res.status(404).json({
                 success: false,
-                message: "invalid username try again"
+                message: "GitHub user not found"
             });
 
         }
