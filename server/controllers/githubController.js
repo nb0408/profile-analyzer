@@ -1,6 +1,8 @@
 const axios = require("axios");
 
 const cache = require("../cache/cacheStore");
+const db = require("../database/db");
+
 const getUserProfile = async (req, res) => {
 
     try {
@@ -64,6 +66,11 @@ const getUserProfile = async (req, res) => {
             data: profile,
             timestamp: Date.now()
         };
+        const insertSearch = db.prepare(`
+        INSERT INTO searches (username)
+        VALUES (?)`);
+
+        insertSearch.run(username);
 
         res.status(200).json({
             success: true,
@@ -247,9 +254,36 @@ const compareUsers = async (req, res) => {
 
 };
 
+const getSearchHistory = (req, res) => {
+
+    try {
+
+        const history = db.prepare(`
+        SELECT *
+        FROM searches
+        ORDER BY searchedAt DESC
+        LIMIT 10
+        `).all();
+
+        res.status(200).json({
+            success: true,
+            history
+        });
+
+    } catch (error) {
+
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch history"
+        });
+
+    }
+
+};
 
 module.exports = {
     getUserProfile,
     getUserRepos,
-    compareUsers
+    compareUsers,
+    getSearchHistory
 };
